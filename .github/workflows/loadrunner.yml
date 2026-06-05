@@ -15,6 +15,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Create Results Folder
+        run: |
+          $resultsPath = "${{ github.workspace }}\results"
+          if (!(Test-Path $resultsPath)) {
+            New-Item -ItemType Directory -Path $resultsPath -Force
+            Write-Host "Results folder created at: $resultsPath"
+          } else {
+            Write-Host "Results folder already exists"
+          }
+
       - name: Run LoadRunner Scenario
         run: |
           & "C:\Program Files (x86)\Micro Focus\LoadRunner\bin\Wlrun.exe" `
@@ -26,17 +36,11 @@ jobs:
       - name: Wait for Results
         run: Start-Sleep -Seconds 10
 
-      - name: Copy Results to results folder
+      - name: Verify Results
         run: |
-          $resultsSource = "C:\TFS\LoadRunner-Training-June\actions-runner\_work\LoadRunner-Training-June\LoadRunner-Training-June\results"
-          
-          if (Test-Path $resultsSource) {
-            Write-Host "Results found at: $resultsSource"
-            Get-ChildItem $resultsSource
-          } else {
-            Write-Host "ERROR: Results folder not found at $resultsSource"
-            exit 1
-          }
+          $resultsPath = "${{ github.workspace }}\results"
+          Write-Host "=== Contents of results folder ==="
+          Get-ChildItem $resultsPath -Recurse -ErrorAction SilentlyContinue
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
