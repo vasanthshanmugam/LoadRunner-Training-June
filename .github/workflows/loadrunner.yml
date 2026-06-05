@@ -33,16 +33,22 @@ jobs:
 
       - name: Copy Results to Workspace
         run: |
-          $resultFolder = "C:\Users\vasan\result_${{ github.run_number }}"
-          Write-Host "Looking for results at: $resultFolder"
-          
-          if (Test-Path $resultFolder) {
-            Write-Host "Results found! Copying..."
-            Copy-Item -Path "$resultFolder\*" -Destination "${{ github.workspace }}\results\" -Recurse -Force
+          Write-Host "Searching for latest results..."
+          $latestResult = Get-ChildItem "C:\Users\vasan" -Recurse -Filter "*.lrr" `
+            -ErrorAction SilentlyContinue | `
+            Sort-Object LastWriteTime -Descending | `
+            Select-Object -First 1
+
+          if ($latestResult) {
+            $resultFolder = $latestResult.DirectoryName
+            Write-Host "Results found at: $resultFolder"
+            Copy-Item -Path "$resultFolder\*" `
+              -Destination "${{ github.workspace }}\results\" `
+              -Recurse -Force
             Write-Host "Copy complete"
           } else {
-            Write-Host "Folder not found, searching..."
-            Get-ChildItem "C:\Users\vasan" -Recurse -Filter "*.lrr" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 3 FullName, LastWriteTime
+            Write-Host "ERROR: No results found anywhere!"
+            exit 1
           }
 
       - name: Verify Results
