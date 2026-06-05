@@ -5,3 +5,6 @@ results/
 *.tmp
 *.bak
 replay/
+
+
+actions-runner/
