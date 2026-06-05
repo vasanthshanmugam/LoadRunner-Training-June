@@ -22,13 +22,33 @@ jobs:
 
       - name: Run LoadRunner Scenario
         run: |
-          & "C:\Program Files (x86)\Micro Focus\LoadRunner\bin\Wlrun.exe" `
-            -Run `
-            -TestPath "${{ github.workspace }}\scenarios\01_TransferMoney\gh_Scenario2.lrs" `
-            -ResultName "result_${{ github.run_number }}" `
-            -Exit
+          # Start Controller with scenario (without -Run and -Exit)
+          $proc = Start-Process `
+            -FilePath "C:\Program Files (x86)\Micro Focus\LoadRunner\bin\Wlrun.exe" `
+            -ArgumentList "-TestPath `"${{ github.workspace }}\scenarios\01_TransferMoney\gh_Scenario2.lrs`"" `
+            -PassThru
 
-      - name: Wait for Results
+          Write-Host "Controller started, PID: $($proc.Id)"
+          Write-Host "Waiting for Controller to fully load..."
+          Start-Sleep -Seconds 15
+
+          # Send keyboard shortcut to Start the scenario
+          Add-Type -AssemblyName System.Windows.Forms
+          [System.Windows.Forms.SendKeys]::SendWait("%s")
+          Start-Sleep -Seconds 2
+          [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+
+          Write-Host "Run command sent, waiting for test to complete..."
+
+          # Wait for scenario to finish (adjust seconds to match your test duration)
+          Start-Sleep -Seconds 120
+
+          # Close Controller
+          Write-Host "Closing Controller..."
+          $proc | Stop-Process -Force
+          Write-Host "Controller closed"
+
+      - name: Wait for Results to Save
         run: Start-Sleep -Seconds 15
 
       - name: Copy Results to Workspace
@@ -47,7 +67,7 @@ jobs:
               -Recurse -Force
             Write-Host "Copy complete"
           } else {
-            Write-Host "ERROR: No results found anywhere!"
+            Write-Host "ERROR: No results found!"
             exit 1
           }
 
