@@ -17,13 +17,8 @@ jobs:
 
       - name: Create Results Folder
         run: |
-          $resultsPath = "${{ github.workspace }}\results"
-          if (!(Test-Path $resultsPath)) {
-            New-Item -ItemType Directory -Path $resultsPath -Force
-            Write-Host "Results folder created at: $resultsPath"
-          } else {
-            Write-Host "Results folder already exists"
-          }
+          New-Item -ItemType Directory -Path "${{ github.workspace }}\results" -Force
+          Write-Host "Results folder created"
 
       - name: Run LoadRunner Scenario
         run: |
@@ -34,13 +29,26 @@ jobs:
             -Exit
 
       - name: Wait for Results
-        run: Start-Sleep -Seconds 10
+        run: Start-Sleep -Seconds 15
+
+      - name: Copy Results to Workspace
+        run: |
+          $resultFolder = "C:\Users\vasan\result_${{ github.run_number }}"
+          Write-Host "Looking for results at: $resultFolder"
+          
+          if (Test-Path $resultFolder) {
+            Write-Host "Results found! Copying..."
+            Copy-Item -Path "$resultFolder\*" -Destination "${{ github.workspace }}\results\" -Recurse -Force
+            Write-Host "Copy complete"
+          } else {
+            Write-Host "Folder not found, searching..."
+            Get-ChildItem "C:\Users\vasan" -Recurse -Filter "*.lrr" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 3 FullName, LastWriteTime
+          }
 
       - name: Verify Results
         run: |
-          $resultsPath = "${{ github.workspace }}\results"
           Write-Host "=== Contents of results folder ==="
-          Get-ChildItem $resultsPath -Recurse -ErrorAction SilentlyContinue
+          Get-ChildItem "${{ github.workspace }}\results" -Recurse -ErrorAction SilentlyContinue
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
