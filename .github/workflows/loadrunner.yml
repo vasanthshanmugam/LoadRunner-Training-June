@@ -1,13 +1,15 @@
-name: LoadRunner Test
+# .github/workflows/loadrunner.yml
+
+name: LoadRunner Performance Test
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:    # manual trigger button in GitHub
+  workflow_dispatch:
 
 jobs:
   load-test:
-    runs-on: self-hosted   # your local machine as runner
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Repository
@@ -21,8 +23,32 @@ jobs:
             -ResultName "result_${{ github.run_number }}" `
             -Exit
 
+      - name: Find Results Folder
+        run: |
+          Write-Host "Searching for LR results..."
+          Get-ChildItem "${{ github.workspace }}" -Recurse -Filter "*.lrr" | Select-Object FullName
+          Get-ChildItem "${{ github.workspace }}" -Recurse -Filter "*.lrr" | Select-Object DirectoryName
+
+      - name: Copy Results to results folder
+        run: |
+          $resultPath = Get-ChildItem "${{ github.workspace }}" -Recurse -Filter "*.lrr" | Select-Object -First 1 -ExpandProperty DirectoryName
+          Write-Host "Results found at: $resultPath"
+          if (!(Test-Path "${{ github.workspace }}\results")) {
+            New-Item -ItemType Directory -Path "${{ github.workspace }}\results"
+          }
+          Copy-Item -Path "$resultPath\*" -Destination "${{ github.workspace }}\results\" -Recurse -Force
+
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
           name: lr-results-${{ github.run_number }}
-          path: results/
+          path: "${{ github.workspace }}/results/"
+
+      - name: Show Results Summary
+        run: |
+          Write-Host "======================================"
+          Write-Host "LoadRunner Test Completed"
+          Write-Host "Run Number : ${{ github.run_number }}"
+          Write-Host "Scenario   : gh_Scenario2.lrs"
+          Write-Host "Results    : lr-results-${{ github.run_number }}"
+          Write-Host "======================================"
