@@ -1,0 +1,7 @@
+results/
+*.lrr
+*.eve
+*.log
+*.tmp
+*.bak
+replay/

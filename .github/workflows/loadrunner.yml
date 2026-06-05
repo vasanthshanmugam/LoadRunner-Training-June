@@ -1,0 +1,28 @@
+name: LoadRunner Test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:    # manual trigger button in GitHub
+
+jobs:
+  load-test:
+    runs-on: self-hosted   # your local machine as runner
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run LoadRunner Scenario
+        run: |
+          & "C:\Program Files (x86)\Micro Focus\LoadRunner\bin\Wlrun.exe" `
+            -Run `
+            -TestPath "${{ github.workspace }}\scenarios\01_TransferMoney\gh_Scenario2.lrs" `
+            -ResultName "result_${{ github.run_number }}" `
+            -Exit
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lr-results-${{ github.run_number }}
+          path: results/
