@@ -22,7 +22,7 @@ jobs:
 
       - name: Run LoadRunner Scenario
         run: |
-          # Start Controller with scenario (without -Run and -Exit)
+          # Start Controller with scenario
           $proc = Start-Process `
             -FilePath "C:\Program Files (x86)\Micro Focus\LoadRunner\bin\Wlrun.exe" `
             -ArgumentList "-TestPath `"${{ github.workspace }}\scenarios\01_TransferMoney\gh_Scenario2.lrs`"" `
@@ -40,7 +40,7 @@ jobs:
 
           Write-Host "Run command sent, waiting for test to complete..."
 
-          # Wait for scenario to finish (adjust seconds to match your test duration)
+          # Wait for scenario to finish
           Start-Sleep -Seconds 120
 
           # Close Controller
@@ -69,6 +69,32 @@ jobs:
           } else {
             Write-Host "ERROR: No results found!"
             exit 1
+          }
+
+      - name: Collate Results
+        run: |
+          $lrrFile = Get-ChildItem "${{ github.workspace }}\results" -Recurse -Filter "*.lrr" `
+            -ErrorAction SilentlyContinue | `
+            Sort-Object LastWriteTime -Descending | `
+            Select-Object -First 1 -ExpandProperty FullName
+
+          Write-Host "Collating: $lrrFile"
+
+          & "C:\Program Files (x86)\Micro Focus\LoadRunner\bin\lr_merge.exe" `
+            -result "$lrrFile" `
+            -collate
+
+          Write-Host "Collation complete"
+
+          # Verify .lra file was created
+          $lraFile = Get-ChildItem "${{ github.workspace }}\results" -Recurse -Filter "*.lra" `
+            -ErrorAction SilentlyContinue | `
+            Select-Object -First 1 -ExpandProperty FullName
+
+          if ($lraFile) {
+            Write-Host "LRA file created: $lraFile"
+          } else {
+            Write-Host "WARNING: LRA file not found, collation may have failed"
           }
 
       - name: Verify Results
